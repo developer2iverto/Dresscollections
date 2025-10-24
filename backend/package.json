@@ -4,8 +4,8 @@
   "description": "Backend API for modern garment and fashion store with authentication, product management, and payment processing",
   "main": "lambda.js",
   "scripts": {
-    "start": "node app.js",
-    "dev": "node app.js",
+    "start": "node src/server.js",
+    "dev": "node src/server.js",
     "build": "echo \"no build needed\""
   },
   "keywords": [
