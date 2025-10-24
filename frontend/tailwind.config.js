@@ -1,0 +1,70 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: '#f9f7f4',
+          100: '#f3efe9',
+          200: '#e7dfd3',
+          300: '#d5c7b2',
+          400: '#c2ad91',
+          500: '#b39778',
+          600: '#a58260',
+          700: '#8c6a4e',
+          800: '#735843',
+          900: '#5f4a3a',
+          950: '#332720',
+        },
+        accent: {
+          50: '#fdf8f6',
+          100: '#f9e8e1',
+          200: '#f5d0c5',
+          300: '#eeaf9b',
+          400: '#e78670',
+          500: '#df6549',
+          600: '#d14a2d',
+          700: '#ae3a25',
+          800: '#8f3324',
+          900: '#762f22',
+          950: '#40150f',
+        },
+        neutral: {
+          50: '#f9f9f9',
+          100: '#f4f4f4',
+          200: '#e9e9e9',
+          300: '#d9d9d9',
+          400: '#c4c4c4',
+          500: '#9d9d9d',
+          600: '#6e6e6e',
+          700: '#4f4f4f',
+          800: '#333333',
+          900: '#1a1a1a',
+          950: '#0d0d0d',
+        },
+      },
+      fontFamily: {
+        sans: ['Jost', 'sans-serif'],
+        heading: ['Tenor Sans', 'sans-serif'],
+        display: ['Cormorant Garamond', 'serif'],
+      },
+      boxShadow: {
+        'soft': '0 2px 10px -2px rgba(0, 0, 0, 0.04)',
+        'card': '0 5px 15px -3px rgba(0, 0, 0, 0.05)',
+        'button': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+      },
+      borderRadius: {
+        'none': '0',
+        'sm': '0.125rem',
+        DEFAULT: '0.25rem',
+        'md': '0.375rem',
+        'lg': '0.5rem',
+      },
+    },
+  },
+  plugins: [],
+}
