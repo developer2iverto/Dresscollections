@@ -19,9 +19,41 @@ import {
   X
 } from 'lucide-react';
 
+// Local types to satisfy strict TypeScript diagnostics
+interface ProductRow {
+  _id: string;
+  name: string;
+  brand?: string;
+  category?: string;
+  mainCategory?: string;
+  gender?: 'men' | 'women' | '';
+  price: number;
+  originalPrice?: number;
+  description?: string;
+  sizes?: string[];
+  colors?: string[];
+  stock?: number;
+  images: string[];
+  rating?: number;
+  reviews?: number;
+  isActive?: boolean;
+  isOnSale?: boolean;
+  isFinalSale?: boolean;
+}
+
+type EditRowData = {
+  name: string;
+  brand: string;
+  category: string;
+  price: string | number;
+  originalPrice: string | number;
+  stock: string | number;
+  images: string[];
+};
+
 // Mock ProductContext for demonstration
 const useProducts = () => {
-  const [products, setProducts] = useState([
+  const [products, setProducts] = useState<ProductRow[]>([
     {
       _id: '1',
       name: 'Classic Cotton T-Shirt',
@@ -44,16 +76,16 @@ const useProducts = () => {
     }
   ]);
 
-  const addProduct = (product) => {
-    const newProduct = { ...product, _id: Date.now().toString() };
+  const addProduct = (product: Omit<ProductRow, '_id'>) => {
+    const newProduct: ProductRow = { ...product, _id: Date.now().toString() };
     setProducts(prev => [...prev, newProduct]);
   };
 
-  const updateProduct = (id, updatedProduct) => {
+  const updateProduct = (id: string, updatedProduct: Partial<ProductRow>) => {
     setProducts(prev => prev.map(p => p._id === id ? { ...p, ...updatedProduct } : p));
   };
 
-  const deleteProduct = (id) => {
+  const deleteProduct = (id: string) => {
     setProducts(prev => prev.filter(p => p._id !== id));
   };
 
@@ -64,23 +96,22 @@ const CMSProducts = () => {
   const { products, addProduct, updateProduct, deleteProduct, loading, error } = useProducts();
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showViewProduct, setShowViewProduct] = useState(false);
-  const [showEditProduct, setShowEditProduct] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductRow | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
 
   // Inline row editing state
-  const [editingProductId, setEditingProductId] = useState(null);
-  const [rowEditData, setRowEditData] = useState(null);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [rowEditData, setRowEditData] = useState<EditRowData | null>(null);
 
   const brands = ['StyleHub', 'LuxeBrand', 'ComfortWalk', 'TrendyFashion'];
   const statuses = ['All', 'Active', 'Low Stock', 'Out of Stock', 'Draft'];
   const categories = ['All Categories', 'T-Shirts', 'Shirts', 'Jeans', 'Pants', 'Jackets', 'Sweaters', 'Dresses', 'Blouses', 'Skirts', 'Tops', 'Bottoms', 'Shorts'];
 
   // Function to determine product status based on stock
-  const getProductStatus = (product) => {
+  const getProductStatus = (product: ProductRow) => {
     if (product.stock === 0) return 'Out of Stock';
-    if (product.stock <= 10) return 'Low Stock';
+    if ((product.stock || 0) <= 10 && (product.stock || 0) > 0) return 'Low Stock';
     return 'Active';
   };
 
@@ -93,37 +124,18 @@ const CMSProducts = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // Image utilities: generate stable image per product name
-  const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-  const keywordFromName = (name, category) => {
-    const n = name.toLowerCase();
-    if (n.includes('dress')) return 'dress';
-    if (n.includes('t-shirt') || n.includes('tee')) return 'tshirt';
-    if (n.includes('shirt')) return 'shirt';
-    if (n.includes('jeans')) return 'jeans';
-    if (n.includes('pants') || n.includes('trouser')) return 'pants';
-    if (n.includes('jacket')) return 'jacket';
-    if (n.includes('sweater') || n.includes('hoodie')) return 'sweater';
-    if (n.includes('skirt')) return 'skirt';
-    if (n.includes('shorts')) return 'shorts';
-    if (n.includes('blouse') || n.includes('top')) return 'top';
-    if (category) {
-      const c = category.toLowerCase();
-      if (c.includes('dress')) return 'dress';
-      if (c.includes('t-shirt') || c.includes('tee')) return 'tshirt';
-      if (c.includes('shirt')) return 'shirt';
-      if (c.includes('jeans')) return 'jeans';
-      if (c.includes('pants') || c.includes('trouser')) return 'pants';
-      if (c.includes('jacket')) return 'jacket';
-      if (c.includes('sweater') || c.includes('hoodie')) return 'sweater';
-      if (c.includes('skirt')) return 'skirt';
-      if (c.includes('shorts')) return 'shorts';
-      if (c.includes('blouse') || c.includes('top')) return 'top';
-    }
-    return 'fashion';
+  // Helper for safe state updates when previous edit state can be null
+  const emptyEditRow: EditRowData = {
+    name: '',
+    brand: '',
+    category: '',
+    price: 0,
+    originalPrice: 0,
+    stock: 0,
+    images: []
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case 'Active': return 'bg-green-100 text-green-800';
       case 'Low Stock': return 'bg-yellow-100 text-yellow-800';
@@ -134,7 +146,18 @@ const CMSProducts = () => {
   };
 
   const AddProductModal = () => {
-    const [productData, setProductData] = useState({
+    const [productData, setProductData] = useState<{
+      name: string;
+      brand: string;
+      category: string;
+      price: string;
+      originalPrice: string;
+      description: string;
+      sizes: string[];
+      colors: string[];
+      stock: string;
+      images: string[];
+    }>({
       name: '',
       brand: '',
       category: '',
@@ -147,8 +170,8 @@ const CMSProducts = () => {
       images: []
     });
 
-    const [newSize, setNewSize] = useState('');
-    const [newColor, setNewColor] = useState('');
+    const [newSize, setNewSize] = useState<string>('');
+    const [newColor, setNewColor] = useState<string>('');
 
     const addSize = () => {
       if (newSize && !productData.sizes.includes(newSize)) {
@@ -160,7 +183,7 @@ const CMSProducts = () => {
       }
     };
 
-    const removeSize = (size) => {
+    const removeSize = (size: string) => {
       setProductData(prev => ({
         ...prev,
         sizes: prev.sizes.filter(s => s !== size)
@@ -177,14 +200,14 @@ const CMSProducts = () => {
       }
     };
 
-    const removeColor = (color) => {
+    const removeColor = (color: string) => {
       setProductData(prev => ({
         ...prev,
         colors: prev.colors.filter(c => c !== color)
       }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = (e: React.FormEvent) => {
       e.preventDefault();
       
       // Validate required fields
@@ -194,7 +217,7 @@ const CMSProducts = () => {
       }
 
       // Map subcategory to main category for catalog visibility
-      const categoryToMainCategory = {
+      const categoryToMainCategory: Record<string, 'mens-wear' | 'womens-wear' | 'kids-wear'> = {
         't-shirts': 'mens-wear',
         'shirts': 'mens-wear',
         'jeans': 'mens-wear',
@@ -210,13 +233,13 @@ const CMSProducts = () => {
       };
       const normalizedCategory = (productData.category || '').toLowerCase();
       const mainCategory = categoryToMainCategory[normalizedCategory] || 'womens-wear';
-
-      const ensureArray = (arr) => Array.isArray(arr) ? arr : [];
+      
+      const ensureArray = <T,>(arr?: T[]): T[] => arr ?? ([] as T[]);
       const commonSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
       const defaultColors = ['Black', 'White', 'Navy'];
 
       // Create new product object
-      const newProduct = {
+      const newProduct: Omit<ProductRow, '_id'> = {
         name: productData.name,
         brand: productData.brand,
         category: productData.category,
@@ -512,7 +535,7 @@ const CMSProducts = () => {
   };
 
   // Inline editing helpers
-  const startRowEdit = (product) => {
+  const startRowEdit = (product: ProductRow) => {
     setEditingProductId(product._id);
     setRowEditData({
       name: product.name || '',
@@ -532,39 +555,41 @@ const CMSProducts = () => {
 
   const saveRowEdit = () => {
     if (!editingProductId || !rowEditData) return;
-    const existing = products.find(p => p._id === editingProductId) || {};
-    const updatedProduct = {
+    const existing = (products.find(p => p._id === editingProductId) || {}) as ProductRow;
+    const updatedProduct: Partial<ProductRow> = {
       ...existing,
       name: rowEditData.name,
       brand: rowEditData.brand,
       category: rowEditData.category,
-      price: parseFloat(rowEditData.price),
-      originalPrice: parseFloat(rowEditData.originalPrice),
-      stock: parseInt(rowEditData.stock),
+      price: typeof rowEditData.price === 'string' ? parseFloat(rowEditData.price) : rowEditData.price,
+      originalPrice: typeof rowEditData.originalPrice === 'string' ? parseFloat(rowEditData.originalPrice) : rowEditData.originalPrice,
+      stock: typeof rowEditData.stock === 'string' ? parseInt(rowEditData.stock) : (rowEditData.stock ?? 0),
       images: rowEditData.images && rowEditData.images.length > 0 ? rowEditData.images : [],
     };
     updateProduct(editingProductId, updatedProduct);
     cancelRowEdit();
   };
 
-  const handleImageUrlChange = (url) => {
+  const handleImageUrlChange = (url: string) => {
     setRowEditData((prev) => {
-      const imgs = prev?.images ? [...prev.images] : [];
+      const base = prev ?? emptyEditRow;
+      const imgs = base.images ? [...base.images] : [];
       if (imgs.length === 0) imgs.push(url);
       else imgs[0] = url;
-      return { ...prev, images: imgs };
+      return { ...base, images: imgs };
     });
   };
 
-  const handleImageFile = (file) => {
+  const handleImageFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
-      const dataUrl = reader.result;
+      const dataUrl = reader.result as string;
       setRowEditData((prev) => {
-        const imgs = prev?.images ? [...prev.images] : [];
+        const base = prev ?? emptyEditRow;
+        const imgs = base.images ? [...base.images] : [];
         if (imgs.length === 0) imgs.push(dataUrl);
         else imgs[0] = dataUrl;
-        return { ...prev, images: imgs };
+        return { ...base, images: imgs };
       });
     };
     reader.readAsDataURL(file);
@@ -848,7 +873,7 @@ const CMSProducts = () => {
                             <input
                               type="text"
                               value={rowEditData?.name || ''}
-                              onChange={(e)=> setRowEditData((prev)=> ({...prev, name: e.target.value}))}
+                              onChange={(e)=> setRowEditData((prev)=> ({...(prev ?? emptyEditRow), name: e.target.value}))}
                               className="text-sm px-2 py-1 border border-gray-300 rounded-md w-56"
                               placeholder="Product name"
                             />
@@ -867,7 +892,7 @@ const CMSProducts = () => {
                               <button
                                 type="button"
                                 className="text-xs text-red-600"
-                                onClick={() => setRowEditData((prev)=> ({...prev, images: []}))}
+                                onClick={() => setRowEditData((prev)=> ({...(prev ?? emptyEditRow), images: []}))}
                               >
                                 Remove
                               </button>
@@ -903,7 +928,7 @@ const CMSProducts = () => {
                         <input
                           type="text"
                           value={rowEditData?.brand || ''}
-                          onChange={(e)=> setRowEditData((prev)=> ({...prev, brand: e.target.value}))}
+                          onChange={(e)=> setRowEditData((prev)=> ({...(prev ?? emptyEditRow), brand: e.target.value}))}
                           className="px-2 py-1 border border-gray-300 rounded-md w-36"
                           placeholder="Brand"
                         />
@@ -916,7 +941,7 @@ const CMSProducts = () => {
                         <input
                           type="text"
                           value={rowEditData?.category || ''}
-                          onChange={(e)=> setRowEditData((prev)=> ({...prev, category: e.target.value}))}
+                          onChange={(e)=> setRowEditData((prev)=> ({...(prev ?? emptyEditRow), category: e.target.value}))}
                           className="px-2 py-1 border border-gray-300 rounded-md w-40"
                           placeholder="Category"
                         />
@@ -931,7 +956,7 @@ const CMSProducts = () => {
                             type="number"
                             step="0.01"
                             value={rowEditData?.price ?? 0}
-                            onChange={(e)=> setRowEditData((prev)=> ({...prev, price: e.target.value}))}
+                            onChange={(e)=> setRowEditData((prev)=> ({...(prev ?? emptyEditRow), price: e.target.value}))}
                             className="px-2 py-1 border border-gray-300 rounded-md w-28"
                             placeholder="Price"
                           />
@@ -939,7 +964,7 @@ const CMSProducts = () => {
                             type="number"
                             step="0.01"
                             value={rowEditData?.originalPrice ?? 0}
-                            onChange={(e)=> setRowEditData((prev)=> ({...prev, originalPrice: e.target.value}))}
+                            onChange={(e)=> setRowEditData((prev)=> ({...(prev ?? emptyEditRow), originalPrice: e.target.value}))}
                             className="px-2 py-1 border border-gray-300 rounded-md w-28"
                             placeholder="Original"
                           />
@@ -960,7 +985,7 @@ const CMSProducts = () => {
                         <input
                           type="number"
                           value={rowEditData?.stock ?? 0}
-                          onChange={(e)=> setRowEditData((prev)=> ({...prev, stock: e.target.value}))}
+                          onChange={(e)=> setRowEditData((prev)=> ({...(prev ?? emptyEditRow), stock: e.target.value}))}
                           className="px-2 py-1 border border-gray-300 rounded-md w-20"
                           placeholder="Stock"
                         />

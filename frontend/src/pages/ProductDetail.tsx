@@ -186,7 +186,7 @@ const ProductDetail = () => {
             )}
           </div>
           <div className="grid grid-cols-3 gap-2">
-            {(getSelectedColorImages()).filter((u) => !!u && !isPlaceholderUrl(u)).map((image, index) => (
+            {(getSelectedColorImages()).filter((u: string) => !!u && !isPlaceholderUrl(u)).map((image: string, index: number) => (
               <button
                 key={index}
                 onClick={() => setSelectedImage(index)}

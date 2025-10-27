@@ -1,11 +1,26 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Star, ChevronDown, X, TrendingUp, Package, Users, Award } from 'lucide-react'
+import { ChevronDown, X, TrendingUp, Package, Users, Award } from 'lucide-react'
 import { useProducts } from '../context/ProductContext'
 import { getDevCatalog, getProductsByCategory } from '../utils/api'
 
+// Local banner type to satisfy strict typing
+type Banner = {
+  title: string
+  description: string
+  image: string
+  gradient: string
+  isAllProducts?: boolean
+  stats?: {
+    totalProducts: string
+    categories: string
+    brands: string
+    avgRating: string
+  }
+}
+
 // Category banner data
-const categoryBanners = {
+const categoryBanners: Record<string, Banner> = {
   // All Products - Default banner for comprehensive view
   'all-products': {
     title: 'All Products',
@@ -126,11 +141,30 @@ const categoryBanners = {
 
 const Products = () => {
   const location = useLocation()
-  const { products, loading, error, clearCache, refreshProducts } = useProducts()
-  const [filteredProducts, setFilteredProducts] = useState([])
+  const { products, clearCache, refreshProducts } = useProducts()
+  // Local product shape used in this page to satisfy strict typing
+  interface ProductRow {
+    _id: string
+    name: string
+    brand?: string
+    category?: string
+    mainCategory?: string
+    gender?: string
+    price: number
+    originalPrice?: number
+    images: string[]
+    sizes?: string[]
+    colors?: string[]
+    isOnSale?: boolean
+    isFinalSale?: boolean
+  }
+
+  const [filteredProducts, setFilteredProducts] = useState<ProductRow[]>([])
   const [sourceProducts, setSourceProducts] = useState<any[]>([])
   const [currentCategory, setCurrentCategory] = useState('womens-wear')
-  const [filters, setFilters] = useState({
+  type Filters = { category: string; size: string; sizeType: string; color: string; priceRange: string }
+  type ExpandableFilterKey = 'category' | 'size' | 'sizeType' | 'color'
+  const [filters, setFilters] = useState<Filters>({
     category: '',
     size: '',
     sizeType: '',
@@ -138,7 +172,7 @@ const Products = () => {
     priceRange: ''
   })
   const [sortBy, setSortBy] = useState('featured')
-  const [expandedFilters, setExpandedFilters] = useState({
+  const [expandedFilters, setExpandedFilters] = useState<Record<ExpandableFilterKey, boolean>>({
     category: true,
     size: true,
     sizeType: false,
@@ -185,8 +219,8 @@ const Products = () => {
 
 
   // Dynamic categories based on main category context
-  const getCategoriesForMainCategory = (mainCategory) => {
-    const categoryMappings = {
+  const getCategoriesForMainCategory = (mainCategory: string): string[] => {
+    const categoryMappings: Record<string, string[]> = {
       'mens-wear': ['T-Shirts', 'Shirts', 'Jeans', 'Pants', 'Jackets', 'Sweaters'],
       // Women’s Wear sidebar filters
       'womens-wear': ['Dresses', 'Jeans', 'Skirts'],
@@ -216,7 +250,7 @@ const Products = () => {
     return 'all-products'
   }
 
-  const categories = getCategoriesForMainCategory(getCurrentMainCategory())
+  const categories: string[] = getCategoriesForMainCategory(getCurrentMainCategory())
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
   const sizeTypes = ['Regular', 'Petite', 'Tall', 'Plus']
   const colors = ['Black', 'White', 'Navy', 'Blue', 'Red', 'Pink', 'Green', 'Purple', 'Brown', 'Gray']
@@ -256,7 +290,6 @@ const Products = () => {
       try {
         const params = new URLSearchParams(location.search)
         const sub = (params.get('subcategory') || '').toLowerCase()
-        const cat = (params.get('category') || '').toLowerCase()
         const fetchKey = sub || ''
         if (fetchKey) {
           try {
@@ -355,7 +388,7 @@ const Products = () => {
         }
       } else {
       // Map category keys to product categories (matching the actual product category values)
-      const categoryMapping = {
+      const categoryMapping: Record<string, string> = {
         't-shirts': 't-shirts',
         'shirts': 'shirts',
         'jeans': 'jeans',
@@ -444,7 +477,7 @@ const Products = () => {
                }
 
                // Fallback: ensure subcategory belongs to appropriate main category
-               const subcategoryToMainCategoryMap = {
+               const subcategoryToMainCategoryMap: Record<string, string[]> = {
                  // Allow Men's and Kids' T-Shirts when no main category is specified
                  't-shirts': ['mens-wear', 'kids-wear'],
                  'shirts': ['mens-wear'],
@@ -485,7 +518,6 @@ const Products = () => {
     // Apply category filter universally when selected
     if (filters.category && filters.category.trim() !== '') {
       const selected = filters.category.toLowerCase()
-      const currentMain = getCurrentMainCategory()
       filtered = filtered.filter(product => {
         const category = (product.category || '').toLowerCase()
         const subcategory = ((product as any).subcategory || '').toLowerCase()
@@ -553,23 +585,26 @@ const Products = () => {
       })
     }
     if (filters.size) {
-      filtered = filtered.filter(product => product.sizes.includes(filters.size))
+      filtered = filtered.filter((product: ProductRow) => (product.sizes || []).includes(filters.size))
     }
     if (filters.color) {
-      filtered = filtered.filter(product => 
-        product.colors.some(color => color.toLowerCase().includes(filters.color.toLowerCase()))
+      filtered = filtered.filter((product: ProductRow) => 
+        (product.colors || []).some(color => (color || '').toLowerCase().includes(filters.color.toLowerCase()))
       )
     }
 
     // Sort products
-    filtered.sort((a, b) => {
+    filtered.sort((a: ProductRow, b: ProductRow) => {
       switch (sortBy) {
         case 'price-low':
           return a.price - b.price
         case 'price-high':
           return b.price - a.price
         case 'rating':
-          return b.rating - a.rating
+          // rating may not be on ProductRow; treat missing as 0
+          const ar = (a as any).rating || 0
+          const br = (b as any).rating || 0
+          return br - ar
         case 'name':
           return a.name.localeCompare(b.name)
         case 'featured':
@@ -634,12 +669,12 @@ const Products = () => {
     setFilteredProducts(filtered)
   }, [products, sourceProducts, filters, sortBy, currentCategory, location.search])
 
-  const handleFilterChange = (key: string, value: string) => {
+  const handleFilterChange = (key: keyof Filters, value: string) => {
     let processedValue = value
     
     // Convert display category names to product category format
     if (key === 'category') {
-      const categoryNameMapping = {
+      const categoryNameMapping: Record<string, string> = {
         'T-Shirts': 't-shirts',
         'Shirts': 'shirts',
         'Jeans': 'jeans',
@@ -662,7 +697,7 @@ const Products = () => {
     }))
   }
 
-  const toggleFilterExpansion = (filterKey: string) => {
+  const toggleFilterExpansion = (filterKey: ExpandableFilterKey) => {
     setExpandedFilters(prev => ({
       ...prev,
       [filterKey]: !prev[filterKey]
@@ -891,9 +926,9 @@ const Products = () => {
                 </button>
                 {expandedFilters.category && (
                   <div className="mt-4 space-y-3">
-                    {categories.map((category) => {
+                    {categories.map((category: string) => {
                       // Convert display name to product category format for comparison
-                      const categoryNameMapping = {
+                      const categoryNameMapping: Record<string, string> = {
                         'T-Shirts': 't-shirts',
                         'Shirts': 'shirts',
                         'Jeans': 'jeans',
