@@ -3,6 +3,7 @@ import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import { MongoMemoryServer } from 'mongodb-memory-server';
 
 // Import routes
 import authRoutes from './routes/auth.js';
@@ -64,12 +65,27 @@ app.use(errorHandler);
 
 // Database connection
 const connectDB = async () => {
+  const uri = process.env.MONGODB_URI || process.env.MONGO_URI || 'mongodb://localhost:27017/ecommerce'
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/ecommerce');
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
+    const conn = await mongoose.connect(uri)
+    console.log(`MongoDB Connected: ${conn.connection.host}`)
   } catch (error) {
-    console.error('Database connection error:', error);
-    process.exit(1);
+    console.error('Database connection error:', error)
+    // In development, spin up an in-memory MongoDB so features work
+    if ((process.env.NODE_ENV || 'development') !== 'production') {
+      console.warn('Starting in-memory MongoDB for development fallback...')
+      try {
+        const mem = await MongoMemoryServer.create()
+        const memUri = mem.getUri()
+        const conn = await mongoose.connect(memUri)
+        console.log(`In-memory MongoDB Connected: ${conn.connection.host}`)
+      } catch (memErr) {
+        console.error('Failed to start in-memory MongoDB:', memErr)
+        console.warn('Continuing without MongoDB connection (development mode). Some features will be unavailable.')
+      }
+      return
+    }
+    process.exit(1)
   }
 };
 

@@ -31,19 +31,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (requiredRole && user) {
     // Super admin has access to everything
     if (user.role === 'super_admin') {
-      return <>{children}</>
+      return <React.Fragment>{children}</React.Fragment>
     }
     
     // Product admin has access to product-related pages and general admin pages
     if (user.role === 'product_admin' && 
         (requiredRole === 'product_admin' || requiredRole === 'editor' || requiredRole === 'admin')) {
-      return <>{children}</>
+      return <React.Fragment>{children}</React.Fragment>
     }
     
     // Admin has access to admin pages but not super_admin pages
     if (user.role === 'admin' && 
         (requiredRole === 'admin' || requiredRole === 'editor' || requiredRole === 'product_admin')) {
-      return <>{children}</>
+      return <React.Fragment>{children}</React.Fragment>
     }
     
     // If none of the above conditions are met, deny access
@@ -66,7 +66,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     )
   }
 
-  return <>{children}</>
+  return <React.Fragment>{children}</React.Fragment>
 }
 
 export default ProtectedRoute

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ShoppingCart, Search, User, Menu, X, ChevronDown, Settings } from 'lucide-react'
 import { useCart } from '../context/CartContext'
@@ -112,7 +112,7 @@ const Header = () => {
   }
 
   return (
-    <>
+    <React.Fragment>
       <header className="bg-white border-b border-neutral-200 sticky top-0 z-40">
       <div className="container mx-auto px-4 md:px-8">
         <div className="flex items-center justify-between h-16">
@@ -354,7 +354,7 @@ const Header = () => {
         </div>
       </div>
     )}
-    </>
+    </React.Fragment>
   )
 }
 

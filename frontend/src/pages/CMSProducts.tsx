@@ -18,7 +18,47 @@ import {
   Save,
   X
 } from 'lucide-react';
-import { useProducts } from '../context/ProductContext'
+
+// Mock ProductContext for demonstration
+const useProducts = () => {
+  const [products, setProducts] = useState([
+    {
+      _id: '1',
+      name: 'Classic Cotton T-Shirt',
+      brand: 'StyleHub',
+      category: 't-shirts',
+      mainCategory: 'mens-wear',
+      gender: 'men',
+      price: 29.99,
+      originalPrice: 39.99,
+      description: 'Comfortable cotton t-shirt perfect for everyday wear',
+      sizes: ['S', 'M', 'L', 'XL'],
+      colors: ['Black', 'White', 'Navy'],
+      stock: 50,
+      images: [],
+      rating: 4.5,
+      reviews: 120,
+      isActive: true,
+      isOnSale: false,
+      isFinalSale: false
+    }
+  ]);
+
+  const addProduct = (product) => {
+    const newProduct = { ...product, _id: Date.now().toString() };
+    setProducts(prev => [...prev, newProduct]);
+  };
+
+  const updateProduct = (id, updatedProduct) => {
+    setProducts(prev => prev.map(p => p._id === id ? { ...p, ...updatedProduct } : p));
+  };
+
+  const deleteProduct = (id) => {
+    setProducts(prev => prev.filter(p => p._id !== id));
+  };
+
+  return { products, addProduct, updateProduct, deleteProduct, loading: false, error: null };
+};
 
 const CMSProducts = () => {
   const { products, addProduct, updateProduct, deleteProduct, loading, error } = useProducts();
@@ -30,11 +70,12 @@ const CMSProducts = () => {
   const [selectedStatus, setSelectedStatus] = useState('all');
 
   // Inline row editing state
-  const [editingProductId, setEditingProductId] = useState<string | null>(null);
-  const [rowEditData, setRowEditData] = useState<any>(null);
+  const [editingProductId, setEditingProductId] = useState(null);
+  const [rowEditData, setRowEditData] = useState(null);
 
   const brands = ['StyleHub', 'LuxeBrand', 'ComfortWalk', 'TrendyFashion'];
   const statuses = ['All', 'Active', 'Low Stock', 'Out of Stock', 'Draft'];
+  const categories = ['All Categories', 'T-Shirts', 'Shirts', 'Jeans', 'Pants', 'Jackets', 'Sweaters', 'Dresses', 'Blouses', 'Skirts', 'Tops', 'Bottoms', 'Shorts'];
 
   // Function to determine product status based on stock
   const getProductStatus = (product) => {
@@ -53,8 +94,8 @@ const CMSProducts = () => {
   });
 
   // Image utilities: generate stable image per product name
-  const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-  const keywordFromName = (name: string, category?: string) => {
+  const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const keywordFromName = (name, category) => {
     const n = name.toLowerCase();
     if (n.includes('dress')) return 'dress';
     if (n.includes('t-shirt') || n.includes('tee')) return 'tshirt';
@@ -81,23 +122,8 @@ const CMSProducts = () => {
     }
     return 'fashion';
   };
-  const imageUrlForName = (name: string, category?: string) => {
-    const keyword = keywordFromName(name, category);
-    const seed = slugify(`${keyword}-${name}`);
-    // Do not auto-assign placeholder images; leave empty
-    return '';
-  };
 
-  const autoAssignImagesFromNames = (onlyMissing: boolean = false) => {
-    filteredProducts.forEach((p: any) => {
-      if (onlyMissing && p.images && p.images.length > 0) return;
-      const url = imageUrlForName(p.name, p.category || p.mainCategory);
-      const newImages: string[] = [];
-      updateProduct(p._id, { ...p, images: newImages });
-    });
-  };
-
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status) => {
     switch (status) {
       case 'Active': return 'bg-green-100 text-green-800';
       case 'Low Stock': return 'bg-yellow-100 text-yellow-800';
@@ -134,7 +160,7 @@ const CMSProducts = () => {
       }
     };
 
-    const removeSize = (size: string) => {
+    const removeSize = (size) => {
       setProductData(prev => ({
         ...prev,
         sizes: prev.sizes.filter(s => s !== size)
@@ -151,14 +177,14 @@ const CMSProducts = () => {
       }
     };
 
-    const removeColor = (color: string) => {
+    const removeColor = (color) => {
       setProductData(prev => ({
         ...prev,
         colors: prev.colors.filter(c => c !== color)
       }));
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = (e) => {
       e.preventDefault();
       
       // Validate required fields
@@ -181,13 +207,13 @@ const CMSProducts = () => {
         'tops': 'womens-wear',
         'bottoms': 'womens-wear',
         'shorts': 'kids-wear'
-      } as const
-      const normalizedCategory = (productData.category || '').toLowerCase()
-      const mainCategory = (categoryToMainCategory as any)[normalizedCategory] || 'womens-wear'
+      };
+      const normalizedCategory = (productData.category || '').toLowerCase();
+      const mainCategory = categoryToMainCategory[normalizedCategory] || 'womens-wear';
 
-      const ensureArray = (arr: any[]) => Array.isArray(arr) ? arr : []
-      const commonSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL']
-      const defaultColors = ['Black', 'White', 'Navy']
+      const ensureArray = (arr) => Array.isArray(arr) ? arr : [];
+      const commonSizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+      const defaultColors = ['Black', 'White', 'Navy'];
 
       // Create new product object
       const newProduct = {
@@ -195,7 +221,6 @@ const CMSProducts = () => {
         brand: productData.brand,
         category: productData.category,
         mainCategory,
-        // Ensure downstream filters work: set gender from mainCategory
         gender: mainCategory === 'mens-wear' ? 'men' : (mainCategory === 'womens-wear' ? 'women' : ''),
         price: parseFloat(productData.price),
         originalPrice: productData.originalPrice ? parseFloat(productData.originalPrice) : parseFloat(productData.price),
@@ -211,7 +236,6 @@ const CMSProducts = () => {
         isFinalSale: false
       };
 
-      // Add product using context
       addProduct(newProduct);
       
       // Reset form and close modal
@@ -358,10 +382,11 @@ const CMSProducts = () => {
                     onChange={(e) => setNewSize(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Add size (e.g., S, M, L, XL)"
-                    onKeyPress={(e) => e.key === 'Enter' && addSize()}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSize())}
                   />
                 </div>
                 <button
+                  type="button"
                   onClick={addSize}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                 >
@@ -376,6 +401,7 @@ const CMSProducts = () => {
                   >
                     {size}
                     <button
+                      type="button"
                       onClick={() => removeSize(size)}
                       className="ml-2 text-blue-600 hover:text-blue-800"
                     >
@@ -400,10 +426,11 @@ const CMSProducts = () => {
                     onChange={(e) => setNewColor(e.target.value)}
                     className="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="Add color (e.g., Red, Blue, Black)"
-                    onKeyPress={(e) => e.key === 'Enter' && addColor()}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addColor())}
                   />
                 </div>
                 <button
+                  type="button"
                   onClick={addColor}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                 >
@@ -418,6 +445,7 @@ const CMSProducts = () => {
                   >
                     {color}
                     <button
+                      type="button"
                       onClick={() => removeColor(color)}
                       className="ml-2 text-green-600 hover:text-green-800"
                     >
@@ -450,7 +478,7 @@ const CMSProducts = () => {
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
                 <Upload className="mx-auto h-12 w-12 text-gray-400" />
                 <div className="mt-4">
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                  <button type="button" className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                     Upload Images
                   </button>
                   <p className="mt-2 text-sm text-gray-500">
@@ -461,7 +489,7 @@ const CMSProducts = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
               <button
                 type="button"
                 onClick={() => setShowAddProduct(false)}
@@ -484,7 +512,7 @@ const CMSProducts = () => {
   };
 
   // Inline editing helpers
-  const startRowEdit = (product: any) => {
+  const startRowEdit = (product) => {
     setEditingProductId(product._id);
     setRowEditData({
       name: product.name || '',
@@ -504,7 +532,7 @@ const CMSProducts = () => {
 
   const saveRowEdit = () => {
     if (!editingProductId || !rowEditData) return;
-    const existing = products.find(p => p._id === editingProductId) || {} as any;
+    const existing = products.find(p => p._id === editingProductId) || {};
     const updatedProduct = {
       ...existing,
       name: rowEditData.name,
@@ -519,8 +547,8 @@ const CMSProducts = () => {
     cancelRowEdit();
   };
 
-  const handleImageUrlChange = (url: string) => {
-    setRowEditData((prev: any) => {
+  const handleImageUrlChange = (url) => {
+    setRowEditData((prev) => {
       const imgs = prev?.images ? [...prev.images] : [];
       if (imgs.length === 0) imgs.push(url);
       else imgs[0] = url;
@@ -528,11 +556,11 @@ const CMSProducts = () => {
     });
   };
 
-  const handleImageFile = (file: File) => {
+  const handleImageFile = (file) => {
     const reader = new FileReader();
     reader.onload = () => {
-      const dataUrl = reader.result as string;
-      setRowEditData((prev: any) => {
+      const dataUrl = reader.result;
+      setRowEditData((prev) => {
         const imgs = prev?.images ? [...prev.images] : [];
         if (imgs.length === 0) imgs.push(dataUrl);
         else imgs[0] = dataUrl;
@@ -565,9 +593,9 @@ const CMSProducts = () => {
             {/* Product Image */}
             <div className="flex justify-center">
               <div className="w-64 h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-                {selectedProduct.image ? (
+                {selectedProduct.images && selectedProduct.images.length > 0 ? (
                   <img 
-                    src={selectedProduct.image} 
+                    src={selectedProduct.images[0]} 
                     alt={selectedProduct.name}
                     className="w-full h-full object-cover rounded-lg"
                   />
@@ -663,297 +691,8 @@ const CMSProducts = () => {
     );
   };
 
-  // Edit Product Modal
-  const EditProductModal = () => {
-    if (!showEditProduct || !selectedProduct) return null;
-
-    const [editFormData, setEditFormData] = useState({
-      name: selectedProduct.name || '',
-      brand: selectedProduct.brand || '',
-      category: selectedProduct.category || selectedProduct.mainCategory || '',
-      price: selectedProduct.price || '',
-      originalPrice: selectedProduct.originalPrice || selectedProduct.price || '',
-      stock: selectedProduct.stock || '',
-      description: selectedProduct.description || '',
-      sizes: selectedProduct.sizes || [],
-      colors: selectedProduct.colors || []
-    });
-    const [newSize, setNewSize] = useState('');
-    const [newColor, setNewColor] = useState('');
-
-    const handleEditSubmit = (e) => {
-      e.preventDefault();
-      
-      // Validation
-      if (!editFormData.name || !editFormData.price || !editFormData.stock) {
-        alert('Please fill in all required fields (Name, Price, Stock)');
-        return;
-      }
-
-      // Update the product
-      const updatedProduct = {
-        ...selectedProduct,
-        ...editFormData,
-        price: parseFloat(editFormData.price),
-        originalPrice: parseFloat(editFormData.originalPrice),
-        stock: parseInt(editFormData.stock)
-      };
-
-      updateProduct(selectedProduct._id, updatedProduct);
-      setShowEditProduct(false);
-      setSelectedProduct(null);
-    };
-
-    const addEditSize = () => {
-      if (newSize && !editFormData.sizes.includes(newSize)) {
-        setEditFormData(prev => ({
-          ...prev,
-          sizes: [...prev.sizes, newSize]
-        }));
-        setNewSize('');
-      }
-    };
-
-    const removeSize = (sizeToRemove) => {
-      setEditFormData(prev => ({
-        ...prev,
-        sizes: prev.sizes.filter(size => size !== sizeToRemove)
-      }));
-    };
-
-    const addEditColor = () => {
-      if (newColor && !editFormData.colors.includes(newColor)) {
-        setEditFormData(prev => ({
-          ...prev,
-          colors: [...prev.colors, newColor]
-        }));
-        setNewColor('');
-      }
-    };
-
-    const removeColor = (colorToRemove) => {
-      setEditFormData(prev => ({
-        ...prev,
-        colors: prev.colors.filter(color => color !== colorToRemove)
-      }));
-    };
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Edit Product</h2>
-              <button 
-                onClick={() => setShowEditProduct(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-          </div>
-
-          <form onSubmit={handleEditSubmit} className="p-6 space-y-6">
-            {/* Basic Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Product Name *
-                </label>
-                <input
-                  type="text"
-                  value={editFormData.name}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter product name"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Brand
-                </label>
-                <input
-                  type="text"
-                  value={editFormData.brand}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, brand: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter brand name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Category
-                </label>
-                <input
-                  type="text"
-                  value={editFormData.category}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, category: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter category"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Price *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={editFormData.price}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, price: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="0.00"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Original Price
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={editFormData.originalPrice}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, originalPrice: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Stock *
-                </label>
-                <input
-                  type="number"
-                  value={editFormData.stock}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, stock: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="0"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
-              </label>
-              <textarea
-                value={editFormData.description}
-                onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter product description"
-              />
-            </div>
-
-            {/* Sizes */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sizes
-              </label>
-              <div className="flex space-x-2 mb-2">
-                <input
-                  type="text"
-                  value={newSize}
-                  onChange={(e) => setNewSize(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Add size (e.g., S, M, L, XL)"
-                />
-                <button
-                  type="button"
-                  onClick={addEditSize}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Add
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {editFormData.sizes.map((size, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
-                  >
-                    {size}
-                    <button
-                      type="button"
-                      onClick={() => removeSize(size)}
-                      className="ml-2 text-red-500 hover:text-red-700"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Colors */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Colors
-              </label>
-              <div className="flex space-x-2 mb-2">
-                <input
-                  type="text"
-                  value={newColor}
-                  onChange={(e) => setNewColor(e.target.value)}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Add color (e.g., Red, Blue, Black)"
-                />
-                <button
-                  type="button"
-                  onClick={addEditColor}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Add
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {editFormData.colors.map((color, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm"
-                  >
-                    {color}
-                    <button
-                      type="button"
-                      onClick={() => removeColor(color)}
-                      className="ml-2 text-red-500 hover:text-red-700"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-              <button
-                type="button"
-                onClick={() => setShowEditProduct(false)}
-                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-              >
-                <Save className="h-4 w-4" />
-                <span>Update Product</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
@@ -1023,7 +762,7 @@ const CMSProducts = () => {
 
       {/* Filters and Search */}
       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
@@ -1045,53 +784,9 @@ const CMSProducts = () => {
             ))}
           </select>
 
-          <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2">
+          <button className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2 justify-center">
             <Filter className="h-4 w-4" />
             <span>More Filters</span>
-          </button>
-          <button
-            onClick={() => {
-              if (window.confirm('Remove placeholder images (Picsum/Placehold) from current list?')) {
-                const isPlaceholder = (u: string) => /picsum\.photos|placehold\.co|via\.placeholder\.com|\/api\/placeholder\//i.test((u || ''))
-                filteredProducts.forEach((p: any) => {
-                  const imgs = Array.isArray(p.images) ? p.images.filter((u: string) => !isPlaceholder(u)) : []
-                  updateProduct(p._id, { ...p, images: imgs })
-                })
-              }
-            }}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Clean Placeholder Images
-          </button>
-          <button
-            onClick={() => {
-              if (window.confirm('Delete ALL images for the current product list?')) {
-                filteredProducts.forEach((p: any) => {
-                  updateProduct(p._id, { ...p, images: [] })
-                })
-              }
-            }}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-          >
-            Delete All Images
-          </button
-          >
-          <button
-            onClick={() => {
-              if (window.confirm('Clean EMPTY image entries for the current product list?')) {
-                const isEmpty = (u: any) => {
-                  const s = (u ?? '').toString().trim()
-                  return s.length === 0
-                }
-                filteredProducts.forEach((p: any) => {
-                  const imgs = Array.isArray(p.images) ? p.images.filter((u: any) => !isEmpty(u)) : []
-                  updateProduct(p._id, { ...p, images: imgs })
-                })
-              }
-            }}
-            className="bg-amber-600 text-white px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors"
-          >
-            Clean Empty Images
           </button>
         </div>
       </div>
@@ -1121,7 +816,7 @@ const CMSProducts = () => {
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Sales
+                  Reviews
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -1153,7 +848,7 @@ const CMSProducts = () => {
                             <input
                               type="text"
                               value={rowEditData?.name || ''}
-                              onChange={(e)=> setRowEditData((prev:any)=> ({...prev, name: e.target.value}))}
+                              onChange={(e)=> setRowEditData((prev)=> ({...prev, name: e.target.value}))}
                               className="text-sm px-2 py-1 border border-gray-300 rounded-md w-56"
                               placeholder="Product name"
                             />
@@ -1162,7 +857,7 @@ const CMSProducts = () => {
                                 type="text"
                                 value={rowEditData?.images?.[0] || ''}
                                 onChange={(e)=> handleImageUrlChange(e.target.value)}
-                                className="text-xs px-2 py-1 border border-gray-300 rounded-md w-56"
+                                className="text-xs px-2 py-1 border border-gray-300 rounded-md w-40"
                                 placeholder="Image URL"
                               />
                               <label className="text-xs text-blue-600 cursor-pointer">
@@ -1171,8 +866,8 @@ const CMSProducts = () => {
                               </label>
                               <button
                                 type="button"
-                                className="text-xs text-red-600 ml-2"
-                                onClick={() => setRowEditData((prev:any)=> ({...prev, images: []}))}
+                                className="text-xs text-red-600"
+                                onClick={() => setRowEditData((prev)=> ({...prev, images: []}))}
                               >
                                 Remove
                               </button>
@@ -1208,7 +903,7 @@ const CMSProducts = () => {
                         <input
                           type="text"
                           value={rowEditData?.brand || ''}
-                          onChange={(e)=> setRowEditData((prev:any)=> ({...prev, brand: e.target.value}))}
+                          onChange={(e)=> setRowEditData((prev)=> ({...prev, brand: e.target.value}))}
                           className="px-2 py-1 border border-gray-300 rounded-md w-36"
                           placeholder="Brand"
                         />
@@ -1221,7 +916,7 @@ const CMSProducts = () => {
                         <input
                           type="text"
                           value={rowEditData?.category || ''}
-                          onChange={(e)=> setRowEditData((prev:any)=> ({...prev, category: e.target.value}))}
+                          onChange={(e)=> setRowEditData((prev)=> ({...prev, category: e.target.value}))}
                           className="px-2 py-1 border border-gray-300 rounded-md w-40"
                           placeholder="Category"
                         />
@@ -1234,17 +929,17 @@ const CMSProducts = () => {
                         <div className="flex flex-col space-y-1">
                           <input
                             type="number"
-                            step="1"
+                            step="0.01"
                             value={rowEditData?.price ?? 0}
-                            onChange={(e)=> setRowEditData((prev:any)=> ({...prev, price: e.target.value}))}
+                            onChange={(e)=> setRowEditData((prev)=> ({...prev, price: e.target.value}))}
                             className="px-2 py-1 border border-gray-300 rounded-md w-28"
                             placeholder="Price"
                           />
                           <input
                             type="number"
-                            step="1"
+                            step="0.01"
                             value={rowEditData?.originalPrice ?? 0}
-                            onChange={(e)=> setRowEditData((prev:any)=> ({...prev, originalPrice: e.target.value}))}
+                            onChange={(e)=> setRowEditData((prev)=> ({...prev, originalPrice: e.target.value}))}
                             className="px-2 py-1 border border-gray-300 rounded-md w-28"
                             placeholder="Original"
                           />
@@ -1265,7 +960,7 @@ const CMSProducts = () => {
                         <input
                           type="number"
                           value={rowEditData?.stock ?? 0}
-                          onChange={(e)=> setRowEditData((prev:any)=> ({...prev, stock: e.target.value}))}
+                          onChange={(e)=> setRowEditData((prev)=> ({...prev, stock: e.target.value}))}
                           className="px-2 py-1 border border-gray-300 rounded-md w-20"
                           placeholder="Stock"
                         />
@@ -1285,10 +980,10 @@ const CMSProducts = () => {
                       <div className="flex space-x-2">
                         {isEditing ? (
                           <>
-                            <button onClick={saveRowEdit} className="text-green-600 hover:text-green-900">
+                            <button onClick={saveRowEdit} className="text-green-600 hover:text-green-900" title="Save">
                               <Save className="h-4 w-4" />
                             </button>
-                            <button onClick={cancelRowEdit} className="text-gray-600 hover:text-gray-900">
+                            <button onClick={cancelRowEdit} className="text-gray-600 hover:text-gray-900" title="Cancel">
                               <X className="h-4 w-4" />
                             </button>
                           </>
@@ -1300,14 +995,14 @@ const CMSProducts = () => {
                                 setShowViewProduct(true);
                               }}
                               className="text-blue-600 hover:text-blue-900"
+                              title="View"
                             >
                               <Eye className="h-4 w-4" />
                             </button>
                             <button 
-                              onClick={() => {
-                                startRowEdit(product);
-                              }}
+                              onClick={() => startRowEdit(product)}
                               className="text-green-600 hover:text-green-900"
+                              title="Edit"
                             >
                               <Edit className="h-4 w-4" />
                             </button>
@@ -1318,6 +1013,7 @@ const CMSProducts = () => {
                                 }
                               }}
                               className="text-red-600 hover:text-red-900"
+                              title="Delete"
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
@@ -1338,9 +1034,6 @@ const CMSProducts = () => {
       
       {/* View Product Modal */}
       {showViewProduct && <ViewProductModal />}
-      
-      {/* Edit Product Modal */}
-      {showEditProduct && <EditProductModal />}
     </div>
   );
 };

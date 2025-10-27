@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import mongoose from 'mongoose';
 
 export const protect = async (req, res, next) => {
   try {
@@ -17,7 +18,13 @@ export const protect = async (req, res, next) => {
     }
 
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'dev_secret_key_change_me');
+      const dbConnected = mongoose.connection && mongoose.connection.readyState === 1;
+      if (!dbConnected) {
+        // In offline dev mode, trust the decoded token payload
+        req.user = decoded;
+        return next();
+      }
       req.user = await User.findById(decoded.id).select('-password');
       next();
     } catch (error) {

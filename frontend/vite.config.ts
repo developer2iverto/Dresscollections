@@ -1,12 +1,10 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  // Use esbuild’s native JSX transform from TypeScript (react-jsx) without Babel plugin
   server: {
     port: 3001,
-    strictPort: true,
     host: true
   }
 })

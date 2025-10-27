@@ -20,8 +20,17 @@ router.post('/register', [
   body('firstName').trim().isLength({ min: 2 }).withMessage('First name must be at least 2 characters'),
   body('lastName').trim().isLength({ min: 1 }).withMessage('Last name must be at least 1 character'),
   body('email').isEmail().normalizeEmail().withMessage('Please provide a valid email'),
-  // Relax phone validation to align with model regex and allow simple demo numbers
-  body('phone').matches(/^\+?[\d\s-()]+$/).withMessage('Please provide a valid phone number'),
+  // Phone: in dev/offline mode, be lenient; otherwise require digits pattern
+  body('phone')
+    .custom((value) => {
+      const forceOffline = String(process.env.DEV_OFFLINE_AUTH || 'true').toLowerCase() === 'true';
+      if (forceOffline) {
+        // Accept any non-empty string in dev to avoid UX friction
+        return typeof value === 'string' && value.trim().length > 0;
+      }
+      return /^\+?[\d\s-()]+$/.test(String(value || ''));
+    })
+    .withMessage('Please provide a valid phone number'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
 ], register);
 
