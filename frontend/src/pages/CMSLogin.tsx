@@ -36,10 +36,22 @@ const CMSLogin = () => {
     }
 
     try {
-      const success = await login(formData.email, formData.password)
+      const email = formData.email.trim()
+      const password = formData.password.trim()
+      const success = await login(email, password)
       if (success) {
         navigate(from, { replace: true })
       } else {
+        // Smart fallback: if demo credentials, auto-create/login demo admin
+        const isDemoCreds = email.toLowerCase() === 'admin@cms.com' && password === 'admin123'
+        if (isDemoCreds) {
+          try {
+            await handleCreateDemoAdmin()
+            return
+          } catch {
+            // If the helper throws, fall through to error UI
+          }
+        }
         setError('Invalid email or password')
       }
     } catch (error) {

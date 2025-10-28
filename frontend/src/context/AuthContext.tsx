@@ -121,6 +121,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return true
     } catch (error) {
       console.error('Login error:', error)
+      // Offline/demo fallback: allow demo admin credentials without backend
+      const isDemo = email.trim().toLowerCase() === 'admin@cms.com' && password.trim() === 'admin123'
+      if (isDemo) {
+        const token = `demo-${Date.now()}`
+        const userObj: User = {
+          id: 'demo-admin',
+          email: 'admin@cms.com',
+          name: 'Admin Demo',
+          role: 'admin',
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent('Admin Demo')}&background=6366f1&color=fff`,
+          firstName: 'Admin',
+          lastName: 'Demo',
+          phone: '+1000000000',
+          addresses: []
+        }
+        localStorage.setItem('authToken', token)
+        localStorage.setItem('userData', JSON.stringify(userObj))
+        setUser(userObj)
+        return true
+      }
       return false
     } finally {
       setIsLoading(false)

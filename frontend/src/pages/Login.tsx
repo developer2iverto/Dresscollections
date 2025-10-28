@@ -22,7 +22,9 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const ok = await login(formData.email, formData.password)
+      const email = formData.email.trim()
+      const password = formData.password.trim()
+      const ok = await login(email, password)
       if (ok) {
         // After login, read the latest user role and redirect appropriately
         const stored = localStorage.getItem('userData')

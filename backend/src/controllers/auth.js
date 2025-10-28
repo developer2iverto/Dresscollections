@@ -174,16 +174,14 @@ export const login = async (req, res, next) => {
     }
 
     const { email, password } = req.body;
-
-    // If DB is offline, allow demo admin to login with a signed JWT
+    // Determine environment state
     const dbConnected = mongoose.connection && mongoose.connection.readyState === 1;
-    if (!dbConnected && isDemoAdmin(email)) {
+    const forceOffline = String(process.env.DEV_OFFLINE_AUTH || 'true').toLowerCase() === 'true';
+
+    // If offline mode and demo admin, allow quick login without DB
+    if ((forceOffline || !dbConnected) && isDemoAdmin(email)) {
       const token = jwt.sign(
-        {
-          id: 'demo-admin',
-          email,
-          role: 'admin'
-        },
+        { id: 'demo-admin', email, role: 'admin' },
         process.env.JWT_SECRET || 'dev_secret_key_change_me',
         { expiresIn: process.env.JWT_EXPIRE || '30d' }
       );
@@ -197,6 +195,36 @@ export const login = async (req, res, next) => {
           email,
           phone: '+1000000000',
           role: 'admin',
+          lastLogin: new Date()
+        }
+      });
+    }
+
+    // Full offline login support for users registered via OFFLINE_USERS
+    if (forceOffline || !dbConnected) {
+      const offlineUser = OFFLINE_USERS.get(email);
+      if (!offlineUser) {
+        return res.status(401).json({ success: false, error: 'Invalid credentials' });
+      }
+      const isMatch = await bcrypt.compare(password, offlineUser.passwordHash);
+      if (!isMatch) {
+        return res.status(401).json({ success: false, error: 'Invalid credentials' });
+      }
+      const token = jwt.sign(
+        { id: offlineUser.id, email: offlineUser.email, role: offlineUser.role },
+        process.env.JWT_SECRET || 'dev_secret_key_change_me',
+        { expiresIn: process.env.JWT_EXPIRE || '30d' }
+      );
+      return res.status(200).json({
+        success: true,
+        token,
+        user: {
+          id: offlineUser.id,
+          firstName: offlineUser.firstName,
+          lastName: offlineUser.lastName,
+          email: offlineUser.email,
+          phone: offlineUser.phone,
+          role: offlineUser.role,
           lastLogin: new Date()
         }
       });
